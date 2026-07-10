@@ -1,0 +1,38 @@
+\section{模型假设与符号说明}
+
+\subsection{模型假设}
+
+为使模型在题给参数范围内可求解，作如下假设：
+
+\begin{enumerate}
+  \item 浮子只考虑题目指定方向的垂荡和纵摇运动，忽略横荡、横摇和艏摇等自由度。
+  \item 海水密度恒定，浮子垂荡恢复力在小位移范围内可线性化为 $-K_h z_b$。
+  \item PTO 阻尼器输出效率取为 1，即阻尼耗散功率等于可输出功率。
+  \item 振子与浮子均视为刚体，弹簧和阻尼器只沿题设方向传递力或力矩。
+  \item 问题三、四中纵摇角较小，并且浮子的顶端不会浸没，圆锥部分不会露出水面。
+\end{enumerate}
+
+\subsection{主要符号}
+
+\begin{table}[H]
+\centering
+\caption{主要符号说明}
+\begin{tabular}{lll}
+\toprule
+符号 & 含义 & 单位 \\
+\midrule
+$z_b,\dot z_b$ & 浮子垂荡位移与速度 & m, m/s \\
+$z_z,\dot z_z$ & 振子沿中轴方向位移与速度 & m, m/s \\
+$\theta_b,\dot\theta_b$ & 浮子纵摇角位移与角速度 & rad, rad/s \\
+$\theta_z,\dot\theta_z$ & 振子相对纵摇角位移与角速度 & rad, rad/s \\
+$m_b,m_z$ & 浮子质量、振子质量 & kg \\
+$m_a,J_a$ & 垂荡附加质量、纵摇附加转动惯量 & kg, kg$\cdot$m$^2$ \\
+$C_h,C_\theta$ & 垂荡、纵摇兴波阻尼系数 & N$\cdot$s/m, N$\cdot$m$\cdot$s \\
+$k,k_\theta$ & 直线弹簧刚度、扭转弹簧刚度 & N/m, N$\cdot$m \\
+$c_1,c_2$ & PTO 垂荡阻尼、旋转阻尼 & N$\cdot$s/m, N$\cdot$m$\cdot$s \\
+$f,L$ & 波浪激励力、激励力矩幅值 & N, N$\cdot$m \\
+$\omega$ & 入射波浪圆频率 & s$^{-1}$ \\
+$P,\bar P$ & 瞬时输出功率、平均输出功率 & W \\
+\bottomrule
+\end{tabular}
+\end{table}

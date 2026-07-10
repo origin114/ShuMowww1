@@ -1,0 +1,90 @@
+% !TEX program = xelatex
+\documentclass[UTF8,12pt,a4paper]{ctexart}
+
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+%\usepackage{minted}
+\usepackage{amsmath,amssymb} % 数学符号
+\usepackage{fontspec}  % 自定义Consolas代码字体
+% 代码环境宏包
+\usepackage{pythonhighlight} % 或 mintex
+\usepackage{ragged2e}
+\pagestyle{plain}
+\setCJKfamilyfont{zhsong}[AutoFakeBold=2.5]{SimSun}
+\newcommand{\absbf}[1]{{\songti\bfseries #1}}
+
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue}
+\linespread{1.35}
+\setlength{\parindent}{2em}
+\graphicspath{{../figures/}}
+\ctexset{
+  section = {format = {\songti\zihao{4}}},
+  subsection = {format = {\songti\zihao{-4}}},
+  subsubsection = {format = {\songti\zihao{-4}}}
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{black!3},
+  columns=fullflexible
+}
+
+\title{\songti 波浪能最大输出功率优化设计}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\songti
+	振荡浮子式波能转换装置通过浮子与内部振子的相对运动提取波浪能，其输出功率受装置动力学响应和 PTO 阻尼参数共同影响。本文围绕垂荡与纵摇耦合条件下的运动响应计算和阻尼优化设计，建立分层动力学模型，并以稳态平均输出功率为统一评价指标给出参数选择方案。
+	
+	\absbf{针对问题一、二}，本文以浮子位移和振子位移为状态变量，建立二自由度耦合振动方程，分别讨论\absbf{线性阻尼}和\absbf{速度幂函数阻尼}两类 PTO 模式。线性阻尼情形下，利用\absbf{复振幅法}推导稳态解析解，并与 \absbf{Runge--Kutta 数值积分}结果进行对照，验证数值求解精度；非线性阻尼情形下，先在 $(\log c,\alpha)$ 平面上\absbf{粗扫描平均功率曲面}，确定高功率区域及单峰邻域，再以粗扫描最优点为初值采用 \absbf{Powell 下山法}局部精修，并对候选参数重新积分复算。计算结果表明，线性阻尼最优系数为 \absbf{$3.7421\times10^4\,\mathrm{N\cdot s/m}$}，有限窗口稳态平均功率为 \absbf{$226.60\,\mathrm{W}$}；非线性阻尼最优参数为 \absbf{$c=8.7065\times10^4,\alpha=0.3593$}，平均功率为 \absbf{$227.03\,\mathrm{W}$}，较线性最优结果略有提升。
+	
+	\absbf{针对问题三、四}，在进一步考虑浮子纵摇和振子相对纵摇后，本文保留浮子垂荡、振子沿中轴滑移、浮子纵摇和振子相对纵摇四个自由度，构建含三角函数投影、惯性耦合和重力矩耦合的\absbf{非线性几何模型}。针对给定阻尼参数，采用 \absbf{Radau 隐式积分法}求解系统响应；针对联合优化问题，先在 $(c_1,c_2)$ 参数平面作\absbf{二维粗扫描}，发现平均功率对垂荡阻尼更敏感且峰区呈带状分布，再以峰区内较优点启动\absbf{无导数局部优化}，并对最优候选解进行高精度稳态复算。最终得到最优垂荡阻尼系数 \absbf{$59846.67\,\mathrm{N\cdot s/m}$}、最优旋转阻尼系数 \absbf{$67472.34\,\mathrm{N\cdot m\cdot s}$}，对应稳态平均总功率 \absbf{$319.22\,\mathrm{W}$}。功率分解显示，在题给参数下\absbf{垂荡阻尼贡献占主导}，旋转阻尼功率占比较小，说明装置能量捕获能力主要由垂荡相对运动决定。
+	
+	本文还从稳态窗口选择、小角度适用性和几何有效范围等方面检验模型可靠性。结果说明，所建模型能够较好刻画振荡浮子式波能装置的主要动力学特征，所给阻尼参数优化策略具有较好的可复现性和工程解释性。
+	
+
+\songti 关键词：波浪能；耦合振动；非线性微分方程；平均功率；阻尼优化
+\end{abstract}
+
+\newpage
+
+\input{sections/1_restatement}
+\input{sections/2_assumptions_symbols}
+\input{sections/3_problem1}
+\input{sections/4_problem2}
+\input{sections/5_problem3}
+\input{sections/6_problem4}
+\input{sections/7_evaluation}
+
+\newpage
+\begin{thebibliography}{99}
+\bibitem{landau}
+朗道, 栗弗席兹. 力学[M]. 北京: 高等教育出版社, 2007.
+\bibitem{simpson}
+Weisstein E W. Simpson's Rule[EB/OL]. MathWorld--A Wolfram Web Resource.
+\RaggedRight % 参考文献内柔和左对齐，自动断英文长词
+\bibitem{rk}
+Hairer E, Wanner G. Solving Ordinary Differential Equations  II: Stiff and Differential-Algebraic Problems[M]. Berlin: Springer, 1996.
+\bibitem{wave}
+Falnes J. Ocean Waves and Oscillating Systems[M]. Cambridge: Cambridge University Press, 2002.
+\end{thebibliography}
+
+\newpage
+\appendix
+\input{sections/A_code}
+
+\end{document}

@@ -1,0 +1,180 @@
+\section{附录：文件列表与核心代码}
+
+本文计算程序和结果表均存放于 \texttt{A题} 文件夹下。为便于复现，表~\ref{tab:appendix_files}
+列出本文提交和复核所需的主要文件。其中 \texttt{problem1.py} 至 \texttt{problem4.py}
+对应四个子问题的主程序，两个 analytic 文件用于线性情形的解析解校验和功率复核。
+
+\begin{table}[H]
+  \centering
+  \caption{主要程序文件和结果文件}
+  \label{tab:appendix_files}
+  \small
+  \begin{tabular}{p{0.34\textwidth}p{0.56\textwidth}}
+    \toprule
+    文件名 & 作用说明 \\
+    \midrule
+    \texttt{problem1.py} & 求解问题一中线性阻尼和非线性阻尼下的二自由度垂荡响应。\\
+    \texttt{problem2.py} & 对问题二的线性阻尼系数及非线性阻尼参数进行功率优化。\\
+    \texttt{problem3.py} & 求解问题三中垂荡--纵摇四自由度非线性几何耦合模型。\\
+    \texttt{problem4.py} & 对问题四的垂荡阻尼和旋转阻尼进行联合优化。\\
+    \texttt{problem1\_analytic\_check.py} & 构造问题一线性阻尼情形的时域解析解，并与数值解比较。\\
+    \texttt{problem2\_linear\_analytic.py} & 利用复振幅法计算问题二线性阻尼的稳态平均功率和最优阻尼。\\
+    \texttt{result1-1.xlsx} & 问题一线性阻尼情形的计算结果表。\\
+    \texttt{result1-2.xlsx} & 问题一非线性阻尼情形的计算结果表。\\
+    \texttt{result3.xlsx} & 问题三给定阻尼参数下的四自由度响应结果表。\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+以下仅给出各程序中与建模和优化直接相关的核心代码片段。为控制附录篇幅，参数定义、文件读写、
+绘图语句和重复性辅助代码均已省略。
+
+\subsection{问题一：二自由度垂荡响应}
+
+\begin{lstlisting}[language=Python,caption={问题一垂荡运动方程与数值积分核心片段}]
+def ode_system(t, x, c_damp, nonlinear=False, alpha=0.5):
+    z_b, zb_dot, z_z, zz_dot = x
+    rel_disp = z_b - z_z
+    rel_vel = zb_dot - zz_dot
+    if nonlinear:
+        f_damp = c_damp * abs(rel_vel) ** alpha * rel_vel
+    else:
+        f_damp = c_damp * rel_vel
+    f_pto = k_spring * rel_disp + f_damp
+    zb_ddot = (f_amp*np.cos(omega*t) - C_wave*zb_dot
+               - K_hydro*z_b - f_pto) / (m_b + m_add)
+    zz_ddot = f_pto / m_z
+    return [zb_dot, zb_ddot, zz_dot, zz_ddot]
+\end{lstlisting}
+
+\subsection{问题二：阻尼参数优化}
+
+\begin{lstlisting}[language=Python,caption={问题二平均功率与非线性阻尼优化核心片段}]
+def damping_power(c, alpha, rv):
+    return c * np.abs(rv) ** (alpha + 2)
+
+def search_nonlinear_surface(c_range=(1e-2, 100000), alpha_range=(0.0, 1.0),
+                             n_c=36, n_alpha=31):
+    log_bounds = (np.log10(c_range[0]), np.log10(c_range[1]))
+    log_grid = np.linspace(log_bounds[0], log_bounds[1], n_c)
+    alpha_grid = np.linspace(alpha_range[0], alpha_range[1], n_alpha)
+    records, best = [], (-np.inf, None, None)
+    for a in alpha_grid:
+        for log_c in log_grid:
+            c = 10 ** log_c
+            p_val = rk4_power(c, a, n_total=32, n_drop=16)
+            records.append((c, a, p_val))
+            if p_val > best[0]:
+                best = (p_val, c, a)
+
+    def objective(x):
+        log_c, alpha = x
+        c = 10 ** log_c
+        return -rk4_power(c, alpha, n_total=36, n_drop=18)
+
+    x0 = np.array([np.log10(best[1]), best[2]])
+    powell = minimize(objective, x0, method="Powell",
+                      bounds=[log_bounds, alpha_range])
+    de = differential_evolution(objective, bounds=[log_bounds, alpha_range])
+    # 对粗扫、Powell 和差分进化的候选点统一长时间复算。
+\end{lstlisting}
+
+\subsection{问题三：四自由度非线性耦合模型}
+
+\begin{lstlisting}[language=Python,caption={问题三非线性几何耦合方程与 Radau 积分核心片段}]
+def ode_system(t, x):
+    z_z, z_b, th_z, th_b, zz_dot, zb_dot, thz_dot, thb_dot = x
+    angle = th_z + th_b
+    sin_a = np.sin(angle)
+    cos_a = np.cos(angle)
+    thb_ddot = (-K_pitch*th_b - C_pitch*thb_dot
+                + c_rotary*thz_dot + k_torsion*th_z
+                + L_amp*np.cos(omega*t)) / (I_b + J_add)
+    Iz_eff = I_z + m_z * z_z**2
+    thz_ddot = (-c_rotary*thz_dot - k_torsion*th_z
+                + m_z*g*z_z*sin_a) / Iz_eff - thb_ddot
+    m_eff = m_b + m_add + m_z * sin_a**2
+    zb_ddot = (
+        k_linear*(z_z-l0+m_z*g/k_linear)*cos_a + c_linear*zz_dot*cos_a
+        - C_heave*zb_dot + f_amp*np.cos(omega*t) - K_heave*z_b
+        + sin_a*(m_z*(z_z*thz_ddot + 2*zz_dot*thz_dot
+        + z_z*thb_ddot + 2*zz_dot*thb_dot) - m_z*g*sin_a)
+    ) / m_eff
+    zz_ddot = (
+        -k_linear*(z_z-l0) - c_linear*zz_dot - m_z*g*cos_a
+        - m_z*(-z_z*thz_dot**2 + zb_ddot*cos_a
+        - z_z*thb_dot**2 - 2*z_z*thb_dot*thz_dot)
+    ) / m_z
+    return [zz_dot, zb_dot, thz_dot, thb_dot,
+            zz_ddot, zb_ddot, thz_ddot, thb_ddot]
+
+sol = solve_ivp(ode_system, (0, 40*T_period), x0, t_eval=t_eval,
+                method="Radau", rtol=1e-8, atol=1e-10)
+\end{lstlisting}
+
+\subsection{问题四：垂荡与旋转阻尼联合优化}
+
+\begin{lstlisting}[language=Python,caption={问题四平均功率计算和局部优化核心片段}]
+def average_power(c_linear, c_rotary, n_periods=45, drop_periods=25):
+    sol = solve_response(c_linear, c_rotary, n_periods=n_periods)
+    t = sol.t
+    mask = t >= drop_periods * T_period
+    zz_dot = sol.y[4, mask]
+    thz_dot = sol.y[6, mask]
+    t = t[mask]
+    p_heave = c_linear * zz_dot ** 2
+    p_pitch = c_rotary * thz_dot ** 2
+    p_linear = np.trapezoid(p_heave, t) / (t[-1] - t[0])
+    p_rotary = np.trapezoid(p_pitch, t) / (t[-1] - t[0])
+    return PowerResult(c_linear, c_rotary, p_linear+p_rotary,
+                       p_linear, p_rotary)
+
+def coarse_scan():
+    values = np.linspace(0.0, 100000.0, 11)
+    rows = []
+    for c1 in values:
+        for c2 in values:
+            rows.append(average_power(c1, c2).__dict__)
+    return pd.DataFrame(rows).sort_values("p_total", ascending=False)
+
+def refine_from(best):
+    cache = {}
+    def objective(v):
+        c1, c2 = v
+        key = (round(c1), round(c2))
+        if key not in cache:
+            cache[key] = average_power(c1, c2)
+        return -cache[key].p_total
+    opt = minimize(objective, [best.c_linear, best.c_rotary],
+                   method="Powell", bounds=[(0, 1e5), (0, 1e5)])
+    return average_power(opt.x[0], opt.x[1])
+\end{lstlisting}
+
+\subsection{线性问题的解析校验}
+
+\begin{lstlisting}[language=Python,caption={问题一线性阻尼时域解析解核心片段}]
+def analytic_solution(times):
+    A, b = state_matrices()
+    q = np.linalg.solve(1j*omega*np.eye(4) - A, b)
+    x0 = np.zeros(4)
+    x_ss_0 = np.real(q)
+    exact = []
+    for t in times:
+        x_steady = np.real(q * np.exp(1j*omega*t))
+        x_exact = x_steady + expm(A*t).dot(x0 - x_ss_0)
+        exact.append(x_exact)
+    return np.asarray(exact), q
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python,caption={问题二线性阻尼稳态功率解析优化核心片段}]
+def complex_amplitude(c):
+    M = np.array([[m_b + m_add, 0], [0, m_z]], dtype=complex)
+    C = np.array([[C_w + c, -c], [-c, c]], dtype=complex)
+    K = np.array([[K_h + k_s, -k_s], [-k_s, k_s]], dtype=complex)
+    F = np.array([f_amp, 0], dtype=complex)
+    return np.linalg.solve(K - omega**2*M + 1j*omega*C, F)
+
+def analytic_power(c):
+    z = complex_amplitude(c)
+    return 0.5 * c * omega**2 * abs(z[0] - z[1]) ** 2
+\end{lstlisting}
